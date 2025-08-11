@@ -6,6 +6,7 @@ helm/*/templates/
 node_modules/
 dist/
 build/
+images
 
 # Logs
 *.log
