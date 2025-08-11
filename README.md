@@ -60,3 +60,6 @@ This application includes:
 - ✅ **Ingress support** for external access
 - ✅ **Resource management** with limits and requests
 - ✅ **Security hardening** with non-root containers
+
+
+## please refer to the images folder for the deployment images
