@@ -63,3 +63,7 @@ This application includes:
 
 
 ## please refer to the images folder for the deployment images
+## notes 
+- My pipeline works automatically on every push or pull request on the master branch.
+- Argocd is used as a gitops tool, which means that changes are made directly in the code repository and synched automatically to local         Kubernetes cluster.
+- A token from github user account is required for argocd.
