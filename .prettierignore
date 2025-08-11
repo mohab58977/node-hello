@@ -1,0 +1,28 @@
+# Helm templates contain Go template syntax that Prettier can't handle
+helm/*/templates/
+*.gotmpl
+
+# Build outputs
+node_modules/
+dist/
+build/
+
+# Logs
+*.log
+
+# Package manager lockfiles
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Generated files
+coverage/
+.nyc_output/
+
+# IDE files
+.vscode/
+.idea/
+
+# OS files
+.DS_Store
+Thumbs.db

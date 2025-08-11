@@ -3,7 +3,7 @@ name: node-hello
 description: A Helm chart for Node.js Hello World application
 type: application
 version: 0.1.0
-appVersion: "1.0.0"
+appVersion: '1.0.0'
 maintainers:
   - name: mohab58977
     email: mohab58977@users.noreply.github.com

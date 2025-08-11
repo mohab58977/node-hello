@@ -2,12 +2,12 @@ name: CI/CD Pipeline
 
 on:
   push:
-    branches: [ main, master ]
+    branches: [main, master]
     paths-ignore:
       - 'helm/node-hello/values.yaml'
       - '**.md'
   pull_request:
-    branches: [ main, master ]
+    branches: [main, master]
     paths-ignore:
       - 'helm/node-hello/values.yaml'
       - '**.md'
@@ -110,10 +110,10 @@ jobs:
         run: |
           NEW_TAG="${{ needs.build-and-push.outputs.image-tag }}"
           echo "Updating Helm values with new tag: ${NEW_TAG}"
-          
+
           # Update the image tag in values.yaml
           sed -i "s/tag: \".*\"/tag: \"${NEW_TAG}\"/g" helm/node-hello/values.yaml
-          
+
           # Verify the change
           echo "Updated values.yaml:"
           grep -A 3 "image:" helm/node-hello/values.yaml
@@ -172,22 +172,22 @@ jobs:
         run: |
           echo "Starting cleanup of old Docker images..."
           echo "Repository: ${{ github.repository }}"
-          
+
           # Get all package versions (excluding 'latest' tag)
           PACKAGE_VERSIONS=$(curl -s \
             -H "Authorization: Bearer $GITHUB_TOKEN" \
             -H "Accept: application/vnd.github+json" \
             "https://api.github.com/users/$REPO_OWNER/packages/container/$REPO_NAME/versions" \
             | jq -r '[.[] | select(.metadata.container.tags[]? != "latest")] | sort_by(.created_at) | reverse | .[5:] | .[].id')
-          
+
           if [ -z "$PACKAGE_VERSIONS" ]; then
             echo "No old versions to clean up (less than 6 versions exist, or all are 'latest')"
             exit 0
           fi
-          
+
           echo "Found versions to delete:"
           echo "$PACKAGE_VERSIONS"
-          
+
           # Delete old versions
           echo "$PACKAGE_VERSIONS" | while read -r VERSION_ID; do
             if [ ! -z "$VERSION_ID" ]; then
@@ -200,5 +200,5 @@ jobs:
                 || echo "✗ Failed to delete version $VERSION_ID"
             fi
           done
-          
+
           echo "Cleanup completed!"

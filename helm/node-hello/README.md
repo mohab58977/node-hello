@@ -33,21 +33,21 @@ helm uninstall node-hello
 
 The following table lists the configurable parameters and their default values:
 
-| Parameter | Description | Default |
-|-----------|-------------|---------|
-| `replicaCount` | Number of replicas | `2` |
-| `image.repository` | Image repository | `ghcr.io/mohab58977/node-hello` |
-| `image.tag` | Image tag | `1.0.0` |
-| `image.pullPolicy` | Image pull policy | `IfNotPresent` |
-| `service.type` | Service type | `ClusterIP` |
-| `service.port` | Service port | `80` |
-| `service.targetPort` | Container port | `3000` |
-| `ingress.enabled` | Enable ingress | `false` |
-| `resources.limits.cpu` | CPU limit | `500m` |
-| `resources.limits.memory` | Memory limit | `512Mi` |
-| `resources.requests.cpu` | CPU request | `250m` |
-| `resources.requests.memory` | Memory request | `256Mi` |
-| `autoscaling.enabled` | Enable horizontal pod autoscaling | `false` |
+| Parameter                   | Description                       | Default                         |
+| --------------------------- | --------------------------------- | ------------------------------- |
+| `replicaCount`              | Number of replicas                | `2`                             |
+| `image.repository`          | Image repository                  | `ghcr.io/mohab58977/node-hello` |
+| `image.tag`                 | Image tag                         | `1.0.0`                         |
+| `image.pullPolicy`          | Image pull policy                 | `IfNotPresent`                  |
+| `service.type`              | Service type                      | `ClusterIP`                     |
+| `service.port`              | Service port                      | `80`                            |
+| `service.targetPort`        | Container port                    | `3000`                          |
+| `ingress.enabled`           | Enable ingress                    | `false`                         |
+| `resources.limits.cpu`      | CPU limit                         | `500m`                          |
+| `resources.limits.memory`   | Memory limit                      | `512Mi`                         |
+| `resources.requests.cpu`    | CPU request                       | `250m`                          |
+| `resources.requests.memory` | Memory request                    | `256Mi`                         |
+| `autoscaling.enabled`       | Enable horizontal pod autoscaling | `false`                         |
 
 ## Examples
 
