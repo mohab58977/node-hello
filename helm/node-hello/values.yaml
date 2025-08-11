@@ -2,7 +2,7 @@ replicaCount: 2
 
 image:
   repository: ghcr.io/mohab58977/node-hello
-  tag: '2025.08.11-150549-ee07230'
+  tag: '2025.08.11-150901-6cff410'
   pullPolicy: IfNotPresent
 
 nameOverride: ''
