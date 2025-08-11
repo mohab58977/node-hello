@@ -2,9 +2,15 @@ name: CI/CD Pipeline
 
 on:
   push:
-    branches: [main, master]
+    branches: [ main, master ]
+    paths-ignore:
+      - 'helm/node-hello/values.yaml'
+      - '**.md'
   pull_request:
-    branches: [main, master]
+    branches: [ main, master ]
+    paths-ignore:
+      - 'helm/node-hello/values.yaml'
+      - '**.md'
 
 env:
   REGISTRY: ghcr.io
@@ -38,12 +44,26 @@ jobs:
     needs: lint
     runs-on: ubuntu-latest
     permissions:
-      contents: read
+      contents: write
       packages: write
+    outputs:
+      image-tag: ${{ steps.version.outputs.tag }}
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Generate version tag
+        id: version
+        run: |
+          # Generate version based on timestamp and short SHA
+          TIMESTAMP=$(date +%Y%m%d%H%M%S)
+          SHORT_SHA=${GITHUB_SHA::7}
+          VERSION="v${TIMESTAMP}-${SHORT_SHA}"
+          echo "tag=${VERSION}" >> $GITHUB_OUTPUT
+          echo "Generated version: ${VERSION}"
 
       - name: Log in to Container Registry
         uses: docker/login-action@v3
@@ -51,17 +71,6 @@ jobs:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Extract metadata
-        id: meta
-        uses: docker/metadata-action@v5
-        with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
-          tags: |
-            type=ref,event=branch
-            type=ref,event=pr
-            type=sha,prefix={{branch}}-
-            type=raw,value=latest,enable={{is_default_branch}}
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -71,10 +80,51 @@ jobs:
         with:
           context: .
           push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.version.outputs.tag }}
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+          labels: |
+            org.opencontainers.image.title=${{ github.event.repository.name }}
+            org.opencontainers.image.description=${{ github.event.repository.description }}
+            org.opencontainers.image.url=${{ github.event.repository.html_url }}
+            org.opencontainers.image.source=${{ github.event.repository.clone_url }}
+            org.opencontainers.image.version=${{ steps.version.outputs.tag }}
+            org.opencontainers.image.created=${{ github.event.head_commit.timestamp }}
+            org.opencontainers.image.revision=${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+  update-helm-values:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Update Helm values
+        run: |
+          NEW_TAG="${{ needs.build-and-push.outputs.image-tag }}"
+          echo "Updating Helm values with new tag: ${NEW_TAG}"
+          
+          # Update the image tag in values.yaml
+          sed -i "s/tag: \".*\"/tag: \"${NEW_TAG}\"/g" helm/node-hello/values.yaml
+          
+          # Verify the change
+          echo "Updated values.yaml:"
+          grep -A 3 "image:" helm/node-hello/values.yaml
+
+      - name: Commit and push changes
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add helm/node-hello/values.yaml
+          git commit -m "Update Helm chart image tag to ${{ needs.build-and-push.outputs.image-tag }} [skip ci]"
+          git push
 
   security-scan:
     needs: build-and-push
@@ -97,3 +147,58 @@ jobs:
         if: always()
         with:
           sarif_file: 'trivy-results.sarif'
+
+  cleanup-old-images:
+    needs: [build-and-push, security-scan]
+    runs-on: ubuntu-latest
+    permissions:
+      packages: write
+      contents: read
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+
+    steps:
+      - name: Log in to Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Clean up old Docker images
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO_OWNER: ${{ github.repository_owner }}
+          REPO_NAME: ${{ github.event.repository.name }}
+        run: |
+          echo "Starting cleanup of old Docker images..."
+          echo "Repository: ${{ github.repository }}"
+          
+          # Get all package versions (excluding 'latest' tag)
+          PACKAGE_VERSIONS=$(curl -s \
+            -H "Authorization: Bearer $GITHUB_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/users/$REPO_OWNER/packages/container/$REPO_NAME/versions" \
+            | jq -r '[.[] | select(.metadata.container.tags[]? != "latest")] | sort_by(.created_at) | reverse | .[5:] | .[].id')
+          
+          if [ -z "$PACKAGE_VERSIONS" ]; then
+            echo "No old versions to clean up (less than 6 versions exist, or all are 'latest')"
+            exit 0
+          fi
+          
+          echo "Found versions to delete:"
+          echo "$PACKAGE_VERSIONS"
+          
+          # Delete old versions
+          echo "$PACKAGE_VERSIONS" | while read -r VERSION_ID; do
+            if [ ! -z "$VERSION_ID" ]; then
+              echo "Deleting version ID: $VERSION_ID"
+              curl -s -X DELETE \
+                -H "Authorization: Bearer $GITHUB_TOKEN" \
+                -H "Accept: application/vnd.github+json" \
+                "https://api.github.com/users/$REPO_OWNER/packages/container/$REPO_NAME/versions/$VERSION_ID" \
+                && echo "✓ Deleted version $VERSION_ID" \
+                || echo "✗ Failed to delete version $VERSION_ID"
+            fi
+          done
+          
+          echo "Cleanup completed!"

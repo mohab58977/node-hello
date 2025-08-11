@@ -18,8 +18,9 @@ EXPOSE 3000
 
 # Create a non-root user to run the application
 RUN addgroup -g 1001 -S nodejs
-RUN adduser -S nextjs -u 1001
-USER nextjs
+RUN adduser -S nodejs -u 1001 -G nodejs
+RUN chown -R nodejs:nodejs /app
+USER nodejs
 
 # Define the command to run the application
 CMD ["npm", "start"]
