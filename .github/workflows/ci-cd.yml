@@ -58,10 +58,10 @@ jobs:
       - name: Generate version tag
         id: version
         run: |
-          # Generate version based on timestamp and short SHA
-          TIMESTAMP=$(date +%Y%m%d%H%M%S)
+          # Generate version based on timestamp and short SHA for uniqueness
+          TIMESTAMP=$(date -u +%Y.%m.%d-%H%M%S)
           SHORT_SHA=${GITHUB_SHA::7}
-          VERSION="v${TIMESTAMP}-${SHORT_SHA}"
+          VERSION="${TIMESTAMP}-${SHORT_SHA}"
           echo "tag=${VERSION}" >> $GITHUB_OUTPUT
           echo "Generated version: ${VERSION}"
 
@@ -111,8 +111,8 @@ jobs:
           NEW_TAG="${{ needs.build-and-push.outputs.image-tag }}"
           echo "Updating Helm values with new tag: ${NEW_TAG}"
 
-          # Update the image tag in values.yaml
-          sed -i "s/tag: \".*\"/tag: \"${NEW_TAG}\"/g" helm/node-hello/values.yaml
+          # Update the image tag in values.yaml (handle both single and double quotes)
+          sed -i "s/tag: ['\"].*['\"]$/tag: '${NEW_TAG}'/g" helm/node-hello/values.yaml
 
           # Verify the change
           echo "Updated values.yaml:"
