@@ -11,6 +11,7 @@ on:
     paths-ignore:
       - 'helm/node-hello/values.yaml'
       - '**.md'
+      - 'images/'
 
 env:
   REGISTRY: ghcr.io
