@@ -22,10 +22,7 @@ The pipeline is triggered by the following events:
 The pipeline ignores changes to the `helm/node-hello/values.yaml` file and any files with the `.md` extension.
 
 ## Secrets
-
-The pipeline uses the following secrets:
-
-- **GITHUB_TOKEN**: This secret is used to authenticate with the GitHub API and the GitHub Container Registry.
+the pipeline doesn't need any secrets to work as it uses the github registry
 
 ## Jobs
 
